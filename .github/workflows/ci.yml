@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   security-events: write
 
 env:
@@ -78,6 +79,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - run: pnpm ci:schema-contract
       - uses: digitalocean/action-doctl@v2
         with:
@@ -191,7 +193,7 @@ jobs:
           output: trivy.sarif
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          exit-code: "1"
+          exit-code: "0"
       - uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
@@ -207,3 +209,8 @@ jobs:
           name: identity-sbom-${{ github.sha }}
           path: identity-${{ github.sha }}.spdx.json
           retention-days: 90
+      - name: Reject fixable high or critical vulnerabilities
+        run: |
+          count="$(jq '[.runs[].results[]] | length' trivy.sarif)"
+          jq -r '.runs[].results[]? | "\(.ruleId): \(.message.text)"' trivy.sarif
+          test "$count" -eq 0
