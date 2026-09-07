@@ -1,11 +1,11 @@
 # Contributing
 
-Use Node 22 and pnpm 9.15.4. Keep the isolated pnpm linker and
+Use Node 22 and pnpm 10.34.5. Keep the isolated pnpm linker and
 `auto-install-peers=false`.
 
 ```sh
 corepack enable
-corepack prepare pnpm@9.15.4 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 pnpm ci:verify
 ```
