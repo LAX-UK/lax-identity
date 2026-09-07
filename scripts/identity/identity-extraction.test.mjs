@@ -113,7 +113,7 @@ test("bootstrap writes an exact isolated workspace without generating a lockfile
     assert.deepEqual(manifest.devDependencies, { "@biomejs/biome": "^1.9.4" });
     assert.equal(
       readFileSync(join(root, ".npmrc"), "utf8"),
-      "node-linker=isolated\nauto-install-peers=false\npublic-hoist-pattern[]=drizzle-orm\n",
+      "node-linker=isolated\nauto-install-peers=false\ndedupe-peer-dependents=false\npublic-hoist-pattern[]=drizzle-orm\n",
     );
     const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
     for (const path of IDENTITY_PACKAGE_PATHS) assert.match(workspace, new RegExp(path));
