@@ -111,7 +111,10 @@ test("bootstrap writes an exact isolated workspace without generating a lockfile
 
     const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
     assert.deepEqual(manifest.devDependencies, { "@biomejs/biome": "^1.9.4" });
-    assert.equal(readFileSync(join(root, ".npmrc"), "utf8"), "node-linker=isolated\n");
+    assert.equal(
+      readFileSync(join(root, ".npmrc"), "utf8"),
+      "node-linker=isolated\nauto-install-peers=false\npublic-hoist-pattern[]=drizzle-orm\n",
+    );
     const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
     for (const path of IDENTITY_PACKAGE_PATHS) assert.match(workspace, new RegExp(path));
     assert.doesNotMatch(workspace, /apps\/\*|packages\/\*/);
@@ -127,5 +130,9 @@ test("history extraction is one path-preserving filter operation", () => {
     dryRun: true,
   });
   assert.equal(commands.filter((command) => command.startsWith("git filter-repo")).length, 1);
+  assert.equal(
+    commands.filter((command) => command === "normalize extracted HEAD to main").length,
+    1,
+  );
   assert.doesNotMatch(commands.join("\n"), /subtree|split\/identity|--path-rename/);
 });
