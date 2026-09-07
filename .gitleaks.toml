@@ -1,0 +1,11 @@
+title = "LAX Identity"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated dependency stores are outside the Identity source boundary"
+paths = [
+  '''(^|/)\.pnpm-store/''',
+  '''(^|/)node_modules/''',
+]

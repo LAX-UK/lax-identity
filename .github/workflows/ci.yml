@@ -1,0 +1,209 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9.15.4"
+
+jobs:
+  code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm lint:layers
+      - run: pnpm ci:identity-extractability
+      - run: pnpm ci:schema-contract
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+      - run: pnpm test:better-auth-contract
+      - run: pnpm build
+      - run: pnpm audit:prod
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: identity_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d identity_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/identity_ci
+      DATABASE_URL_AUTH: postgresql://postgres:postgres@127.0.0.1:5432/identity_ci
+      REDIS_URL: redis://127.0.0.1:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm ci:schema-contract
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      - run: doctl registry login --expiry-seconds 900
+      - name: Initialize schema from pinned monorepo image
+        run: |
+          image="$(node scripts/ci/verify-schema-contract.mjs --print-migrate-image)"
+          docker pull "$image"
+          docker run --rm --network host \
+            -e DATABASE_URL_OWNER="$DATABASE_URL" \
+            "$image"
+      - run: pnpm test:redis
+      - run: pnpm test:integration
+
+  secret-history:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan pull-request changes
+        if: github.event_name == 'pull_request'
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.3 \
+            detect --source=/repo --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.sha }}" \
+            --config=/repo/.gitleaks.toml --redact --verbose
+      - name: Scan complete main history
+        if: github.event_name == 'push'
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.3 \
+            detect --source=/repo --log-opts=--all \
+            --config=/repo/.gitleaks.toml --redact --verbose
+
+  image-security:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: identity_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d identity_smoke"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/identity_smoke
+      IMAGE: lax-identity-ci:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      - run: doctl registry login --expiry-seconds 900
+      - name: Initialize smoke schema
+        run: |
+          image="$(node scripts/ci/verify-schema-contract.mjs --print-migrate-image)"
+          docker pull "$image"
+          docker run --rm --network host \
+            -e DATABASE_URL_OWNER="$DATABASE_URL" \
+            "$image"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build immutable candidate
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/auth/Dockerfile
+          load: true
+          tags: ${{ env.IMAGE }}
+          build-args: IMAGE_SHA=${{ github.sha }}
+      - name: Readiness smoke
+        run: |
+          auth_dek_key="$(openssl rand -hex 32)"
+          docker run --rm -d --name identity-smoke --network host \
+            -e NODE_ENV=production \
+            -e APP_ENV=test \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e DATABASE_URL_AUTH="$DATABASE_URL" \
+            -e REDIS_URL=redis://127.0.0.1:6379 \
+            -e BETTER_AUTH_SECRET=ci-only-better-auth-secret-with-at-least-forty-eight-characters \
+            -e AUTH_DEK_KEY="$auth_dek_key" \
+            -e OIDC_ISSUER_URL=https://test-auth.lax.bid \
+            -e WEB_ORIGIN=https://test.lax.bid \
+            -e WEB_ORIGINS=https://test.lax.bid \
+            -e API_INTERNAL_BASE_URL=https://test-api.lax.bid \
+            -e IDENTITY_MACHINE_CLIENT_ID=auth-service \
+            -e IDENTITY_MACHINE_CLIENT_SECRET=ci-only-machine-secret-at-least-thirty-two-characters \
+            -e EMAIL_PROVIDER=console \
+            "$IMAGE"
+          trap 'docker rm -f identity-smoke >/dev/null 2>&1 || true' EXIT
+          for _ in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:3003/health/ready &&
+              exit 0
+            sleep 2
+          done
+          docker logs identity-smoke
+          exit 1
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: sarif
+          output: trivy.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+      - uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}
+          format: spdx-json
+          output-file: identity-${{ github.sha }}.spdx.json
+          upload-artifact: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: identity-sbom-${{ github.sha }}
+          path: identity-${{ github.sha }}.spdx.json
+          retention-days: 90

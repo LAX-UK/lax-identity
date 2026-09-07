@@ -1,0 +1,83 @@
+name: Publish Identity image
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: identity-image-test
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: test
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      IMAGE_REPOSITORY: registry.digitalocean.com/lax-bid/lax-test-identity
+      SENTRY_ORG: lax-bid
+      SENTRY_PROJECT: lax-test-auth
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+        env:
+          SENTRY_RELEASE: ${{ env.SHA }}
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      - run: doctl registry login --expiry-seconds 1200
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and publish immutable and rolling tags
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/auth/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: true
+          sbom: true
+          build-args: IMAGE_SHA=${{ env.SHA }}
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:${{ env.SHA }}
+            ${{ env.IMAGE_REPOSITORY }}:test
+          cache-from: type=gha,scope=identity-test
+          cache-to: type=gha,mode=max,scope=identity-test
+      - name: Create Auth Sentry release and upload source maps
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        with:
+          environment: test
+          release: ${{ env.SHA }}
+          sourcemaps: ./apps/auth/dist ./packages/auth/dist ./packages/identity-contracts/dist ./packages/identity-db/dist
+          set_commits: auto
+          finalize: true
+      - name: Dispatch the immutable candidate to monorepo
+        env:
+          GH_TOKEN: ${{ secrets.MONOREPO_DISPATCH_TOKEN }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          gh api --method POST repos/LAX-UK/monorepo/dispatches \
+            -f event_type=identity-staging-image-published \
+            -f "client_payload[repository]=$GITHUB_REPOSITORY" \
+            -f "client_payload[sha]=$SHA" \
+            -f "client_payload[digest]=$DIGEST"

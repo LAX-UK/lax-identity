@@ -1,10 +1,13 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - "apps/auth"
+  - "packages/auth"
+  - "packages/config-ts"
+  - "packages/identity-contracts"
+  - "packages/identity-db"
+  - "packages/observability"
 
-# Install optional @tailwindcss/oxide platform bindings (and wasm32 fallback) even when the
-# lockfile was produced on another OS. Without wasm32, pnpm can omit @tailwindcss/oxide-wasm32-wasi
-# on linux-x64, so native failures have no fallback and `next build` errors.
+# Keep the closure lockfile valid for macOS development and the Linux
+# glibc/musl targets used by CI and the production Alpine image.
 supportedArchitectures:
   os:
     - current

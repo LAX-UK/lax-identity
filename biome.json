@@ -6,15 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": false,
-    "ignore": [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/.next/**",
-      "**/e2e/.auth/**",
-      "**/pnpm-lock.yaml",
-      "**/.terraform/**"
-    ]
+    "ignore": ["**/node_modules/**", "**/dist/**", "**/coverage/**", "**/pnpm-lock.yaml"]
   },
   "formatter": {
     "indentStyle": "space",
@@ -27,21 +19,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
-      "correctness": {
-        "noUnusedImports": "error",
-        "noUnusedVariables": "error",
-        "noUnusedFunctionParameters": "error"
-      },
-      "complexity": {
-        "noBannedTypes": "warn"
-      },
-      "style": {
-        "noNonNullAssertion": "warn"
-      },
-      "suspicious": {
-        "noExplicitAny": "warn"
-      }
+      "recommended": true
     }
   },
   "javascript": {
@@ -49,64 +27,5 @@
       "quoteStyle": "double",
       "semicolons": "always"
     }
-  },
-  "overrides": [
-    {
-      "include": ["apps/web/src/app/dashboard/**", "apps/web/src/app/admin/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noRestrictedGlobals": "warn"
-          }
-        }
-      }
-    },
-    {
-      "include": ["packages/ui/src/components/ui/view-switcher.tsx"],
-      "linter": {
-        "rules": {
-          "a11y": {
-            "useSemanticElements": "off"
-          }
-        }
-      }
-    },
-    {
-      "include": ["apps/web/src/app/**/error.tsx"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noShadowRestrictedNames": "off"
-          }
-        }
-      }
-    },
-    {
-      "include": ["apps/web/src/components/admin/admin-loading-skeletons.tsx"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noArrayIndexKey": "off"
-          }
-        }
-      }
-    },
-    {
-      "include": [
-        "packages/ui/src/components/ui/carousel.tsx",
-        "src/components/ui/carousel.tsx",
-        "apps/web/src/components/gallery/parts/thumb-pile-3-plus-n.tsx",
-        "apps/web/src/components/sections/home/hero/hero-slide-copy.tsx",
-        "src/components/gallery/parts/thumb-pile-3-plus-n.tsx",
-        "src/components/sections/home/hero/hero-slide-copy.tsx"
-      ],
-      "linter": {
-        "rules": {
-          "a11y": {
-            "useSemanticElements": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }
