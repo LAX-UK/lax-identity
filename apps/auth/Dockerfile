@@ -51,6 +51,7 @@ WORKDIR /app
 ARG IMAGE_SHA=unknown
 ENV NODE_ENV=production
 ENV SENTRY_RELEASE=${IMAGE_SHA}
+COPY schema-contract.json ./schema-contract.json
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/apps/auth/node_modules ./apps/auth/node_modules
 COPY --from=prod-deps /app/packages/auth/node_modules ./packages/auth/node_modules
