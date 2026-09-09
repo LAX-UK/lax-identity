@@ -30,6 +30,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm lint:layers
+      - run: node --test scripts/ci/publish-workflow.test.mjs
+      - run: node --test scripts/identity/identity-lockfile.test.mjs
       - run: pnpm ci:identity-extractability
       - run: node --test scripts/identity/identity-extraction.test.mjs
       - run: pnpm ci:schema-contract
