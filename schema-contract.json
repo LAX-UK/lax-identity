@@ -1,8 +1,8 @@
 {
-  "monorepoCommit": "eb16ec8630af125b315637e44b395078bc1dfcea",
+  "monorepoCommit": "4e02c62340caf835813fab545e6c9dcd8425e118",
   "migrationJournal": {
     "tip": "0161_revoke_api_user_reads",
     "sha256": "29a4f140fee4cdfb466fead01fc55d494aefb5e534f393bc004d097b542699ea"
   },
-  "migrateImage": "registry.digitalocean.com/lax-bid/lax-test-migrate@sha256:fceea8076c999500ab88877d1fe352b9bf3f84920615facab591c4e2eb7511c8"
+  "migrateImage": "registry.digitalocean.com/lax-bid/lax-test-migrate@sha256:4588e44811701461e4d1e1ec352d1c1041e64aa9005bc680a414c15af8347003"
 }
