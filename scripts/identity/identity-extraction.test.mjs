@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { prepareIdentityWorkspace } from "../ci/prepare-identity-lockfile.mjs";
+import {
+  identityPnpmEnvironment,
+  prepareIdentityWorkspace,
+} from "../ci/prepare-identity-lockfile.mjs";
 import { IDENTITY_PACKAGES, IDENTITY_PACKAGE_NAMES, IDENTITY_PACKAGE_PATHS } from "./closure.mjs";
 import { extractIdentityHistory } from "./extract-history.mjs";
 import { importSpecifiers } from "./import-specifiers.mjs";
@@ -31,9 +34,21 @@ test("closure fixes the six path-preserving workspace packages", () => {
   ]);
 });
 
+test("bootstrap seeds extraction from the source lockfile", () => {
+  const bootstrap = readFileSync(join(repoRoot, "scripts/identity/bootstrap.mjs"), "utf8");
+  const extraction = readFileSync(join(repoRoot, "scripts/identity/extract-identity.mjs"), "utf8");
+  assert.match(bootstrap, /sourceLockfile: join\(sourceRoot, "pnpm-lock\.yaml"\)/);
+  assert.match(extraction, /bootstrapIdentityWorkspace\(destination, sourceRoot\)/);
+});
+
 test("Docker COPY paths stay aligned with the package closure", () => {
   const dockerfile = readFileSync(join(repoRoot, "apps/auth/Dockerfile"), "utf8");
   assert.deepEqual(verifyDockerClosureText(dockerfile), []);
+  assert.match(dockerfile, /RUN corepack enable/);
+  assert.doesNotMatch(dockerfile, /COREPACK_ENABLE_PROJECT_SPEC|corepack prepare/);
+  assert.equal(dockerfile.match(/--config\.node-linker=isolated/g)?.length, 2);
+  assert.doesNotMatch(dockerfile, /COPY scripts\/ci\/prepare-identity-lockfile\.mjs/);
+  assert.doesNotMatch(dockerfile, /node scripts\/ci\/prepare-identity-lockfile\.mjs/);
 
   const drifted = dockerfile.replaceAll(
     "COPY packages/identity-db/package.json ./packages/identity-db/",
@@ -97,7 +112,7 @@ test("bootstrap writes an exact isolated workspace without generating a lockfile
       join(root, "package.json"),
       `${JSON.stringify({
         name: "auction",
-        packageManager: "pnpm@9.15.4",
+        packageManager: "pnpm@10.34.5",
         devDependencies: { "@biomejs/biome": "^1.9.4", unrelated: "1.0.0" },
       })}\n`,
     );
@@ -111,13 +126,39 @@ test("bootstrap writes an exact isolated workspace without generating a lockfile
 
     const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
     assert.deepEqual(manifest.devDependencies, { "@biomejs/biome": "^1.9.4" });
-    assert.equal(readFileSync(join(root, ".npmrc"), "utf8"), "node-linker=isolated\n");
+    assert.equal(
+      readFileSync(join(root, ".npmrc"), "utf8"),
+      [
+        "node-linker=isolated",
+        "auto-install-peers=false",
+        "dedupe-peer-dependents=false",
+        "public-hoist-pattern[]=drizzle-orm",
+        "",
+      ].join("\n"),
+    );
     const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
     for (const path of IDENTITY_PACKAGE_PATHS) assert.match(workspace, new RegExp(path));
     assert.doesNotMatch(workspace, /apps\/\*|packages\/\*/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("Identity pnpm children ignore parent workspace topology", () => {
+  assert.deepEqual(
+    identityPnpmEnvironment({
+      npm_config_node_linker: "hoisted",
+      npm_config_auto_install_peers: "true",
+      npm_config_dedupe_peer_dependents: "true",
+      npm_config_public_hoist_pattern: "*",
+      npm_config_store_dir: "/tmp/identity-store",
+      PATH: "/usr/bin",
+    }),
+    {
+      npm_config_store_dir: "/tmp/identity-store",
+      PATH: "/usr/bin",
+    },
+  );
 });
 
 test("history extraction is one path-preserving filter operation", () => {
@@ -127,5 +168,9 @@ test("history extraction is one path-preserving filter operation", () => {
     dryRun: true,
   });
   assert.equal(commands.filter((command) => command.startsWith("git filter-repo")).length, 1);
+  assert.equal(
+    commands.filter((command) => command === "normalize extracted HEAD to main").length,
+    1,
+  );
   assert.doesNotMatch(commands.join("\n"), /subtree|split\/identity|--path-rename/);
 });

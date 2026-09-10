@@ -11,7 +11,7 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  PNPM_VERSION: "9.15.4"
+  PNPM_VERSION: "10.34.5"
 
 jobs:
   code:
@@ -30,7 +30,10 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm lint:layers
+      - run: node --test scripts/ci/publish-workflow.test.mjs
+      - run: node --test scripts/identity/identity-lockfile.test.mjs
       - run: pnpm ci:identity-extractability
+      - run: node --test scripts/identity/identity-extraction.test.mjs
       - run: pnpm ci:schema-contract
       - run: pnpm typecheck
       - run: pnpm test:unit
@@ -192,6 +195,7 @@ jobs:
           output: trivy.sarif
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          limit-severities-for-sarif: true
           exit-code: "0"
       - uses: actions/upload-artifact@v4
         if: always()

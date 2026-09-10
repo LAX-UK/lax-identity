@@ -1,10 +1,10 @@
-* @LAX-UK/lax-engineering
+* @mahmoudamrspace @lax-art
 
-/apps/auth/ @LAX-UK/lax-engineering
-/packages/auth/ @LAX-UK/lax-engineering
-/packages/config-ts/ @LAX-UK/lax-engineering
-/packages/identity-contracts/ @LAX-UK/lax-engineering
-/packages/identity-db/ @LAX-UK/lax-engineering
-/packages/observability/ @LAX-UK/lax-engineering
-/.github/workflows/ @LAX-UK/lax-engineering
-/schema-contract.json @LAX-UK/lax-engineering
+/apps/auth/ @mahmoudamrspace @lax-art
+/packages/auth/ @mahmoudamrspace @lax-art
+/packages/config-ts/ @mahmoudamrspace @lax-art
+/packages/identity-contracts/ @mahmoudamrspace @lax-art
+/packages/identity-db/ @mahmoudamrspace @lax-art
+/packages/observability/ @mahmoudamrspace @lax-art
+/.github/workflows/ @mahmoudamrspace @lax-art
+/schema-contract.json @mahmoudamrspace @lax-art

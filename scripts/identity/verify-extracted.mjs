@@ -16,9 +16,8 @@ function run(command, args, cwd, { capture = false } = {}) {
     stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit",
   });
   if (result.status !== 0) {
-    throw new Error(
-      `${command} ${args.join(" ")} failed${capture ? `:\n${result.stderr || result.stdout}` : ""}`,
-    );
+    const details = result.error?.message ?? (capture ? result.stderr || result.stdout : undefined);
+    throw new Error(`${command} ${args.join(" ")} failed${details ? `:\n${details}` : ""}`);
   }
   return result.stdout?.trim() ?? "";
 }
@@ -62,7 +61,9 @@ function verifyRefs(root) {
     .split("\n")
     .filter(Boolean);
   const violations = [];
-  if (branches.length !== 1) violations.push(`expected one local branch, found ${branches.length}`);
+  if (branches.length !== 1 || branches[0] !== "refs/heads/main") {
+    violations.push(`expected only refs/heads/main, found ${branches.join(", ") || "none"}`);
+  }
   if (tags.length > 0) violations.push(`unexpected tags: ${tags.join(", ")}`);
   if (remotes.length > 0) violations.push(`unexpected remote refs: ${remotes.join(", ")}`);
   return violations;

@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: identity-image-test
+  group: identity-image-publish
   cancel-in-progress: false
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.15.4
+          version: 10.34.5
           run_install: false
       - uses: actions/setup-node@v4
         with:
@@ -44,7 +44,7 @@ jobs:
           token: ${{ secrets.DIGITALOCEAN_TOKEN }}
       - run: doctl registry login --expiry-seconds 1200
       - uses: docker/setup-buildx-action@v3
-      - name: Build and publish immutable and rolling tags
+      - name: Build and publish the immutable candidate digest
         id: image
         uses: docker/build-push-action@v6
         with:
@@ -55,11 +55,46 @@ jobs:
           provenance: true
           sbom: true
           build-args: IMAGE_SHA=${{ env.SHA }}
-          tags: |
-            ${{ env.IMAGE_REPOSITORY }}:${{ env.SHA }}
-            ${{ env.IMAGE_REPOSITORY }}:test
+          tags: ${{ env.IMAGE_REPOSITORY }}:${{ env.SHA }}
           cache-from: type=gha,scope=identity-test
           cache-to: type=gha,mode=max,scope=identity-test
+          no-cache-filters: runner
+      - name: Scan the published digest before promotion
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ env.IMAGE_REPOSITORY }}@${{ steps.image.outputs.digest }}
+          format: sarif
+          output: identity-${{ env.SHA }}.trivy.sarif
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+      - name: Generate SBOM for the published digest
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE_REPOSITORY }}@${{ steps.image.outputs.digest }}
+          format: spdx-json
+          output-file: identity-${{ env.SHA }}.spdx.json
+          upload-artifact: false
+      - name: Record immutable image evidence
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg sha "$SHA" \
+            --arg image "$IMAGE_REPOSITORY@$DIGEST" \
+            --arg sentry_release "$SHA" \
+            --arg workflow_run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{
+              repository: $repository,
+              sha: $sha,
+              image: $image,
+              sentryRelease: $sentry_release,
+              workflowRun: $workflow_run
+            }' > "identity-release-$SHA.json"
       - name: Create Auth Sentry release and upload source maps
         uses: getsentry/action-release@v3
         env:
@@ -70,6 +105,16 @@ jobs:
           sourcemaps: ./apps/auth/dist ./packages/auth/dist ./packages/identity-contracts/dist ./packages/identity-db/dist
           set_commits: auto
           finalize: true
+      - name: Retain qualified digest, vulnerability, SBOM, and Sentry evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity-release-${{ env.SHA }}
+          path: |
+            identity-release-${{ env.SHA }}.json
+            identity-${{ env.SHA }}.spdx.json
+            identity-${{ env.SHA }}.trivy.sarif
+          if-no-files-found: error
+          retention-days: 90
       - name: Dispatch the immutable candidate to monorepo
         env:
           GH_TOKEN: ${{ secrets.MONOREPO_DISPATCH_TOKEN }}
@@ -80,4 +125,5 @@ jobs:
             -f event_type=identity-staging-image-published \
             -f "client_payload[repository]=$GITHUB_REPOSITORY" \
             -f "client_payload[sha]=$SHA" \
-            -f "client_payload[digest]=$DIGEST"
+            -f "client_payload[digest]=$DIGEST" \
+            -f "client_payload[publish_run_id]=$GITHUB_RUN_ID"

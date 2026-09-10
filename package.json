@@ -2,7 +2,7 @@
   "name": "auction-identity",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=22 <23"
   },
@@ -14,7 +14,7 @@
     "lint:layers": "node scripts/check-layers.mjs",
     "typecheck": "pnpm --filter @auction/auth-app^... --workspace-concurrency=1 build && pnpm --filter @auction/auth-app... --workspace-concurrency=1 typecheck",
     "test": "pnpm test:unit",
-    "test:unit": "pnpm --filter @auction/auth-app... --workspace-concurrency=1 --if-present test -- --exclude='**/*.integration.test.ts'",
+    "test:unit": "pnpm --filter @auction/auth-app... --workspace-concurrency=1 --if-present test --exclude='**/*.integration.test.ts'",
     "test:integration": "node scripts/ci/run-db-integration-tests.mjs",
     "test:redis": "node scripts/ci/check-redis.mjs",
     "test:better-auth-contract": "pnpm --filter @auction/auth-app exec vitest run src/services/better-auth-oidc-compatibility.contract.test.ts",
@@ -30,6 +30,7 @@
       "engine.io@>=6.5.0 <6.6.7": "6.6.7",
       "fast-xml-builder@<=1.1.6": "1.1.7",
       "form-data@>=4.0.0 <4.0.6": "4.0.6",
+      "pg>pg-cloudflare": "-",
       "postcss@<=8.5.17": "8.5.18",
       "sharp@<0.35.0": "0.35.0",
       "socket.io-parser@>=4.0.0 <4.2.7": "4.2.7",
