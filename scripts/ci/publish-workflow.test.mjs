@@ -33,6 +33,8 @@ test("publish builds once, qualifies the exact digest, and never mutates the rol
   assert.match(workflow, /identity-\$\{\{ env\.SHA \}\}\.spdx\.json/);
   assert.match(workflow, /sentryRelease: \$sentry_release/);
   assert.match(workflow, /release: \$\{\{ env\.SHA \}\}/);
+  assert.match(workflow, /ignore_missing: true/);
+  assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /client_payload\[publish_run_id\]/);
   assertOrdered([
     "Build and publish the immutable candidate digest",
