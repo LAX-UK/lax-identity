@@ -25,9 +25,7 @@ export function buildOidcConsentHtml(input: {
   code: string;
 }): string {
   const clientName = escapeHostedHtml(input.clientName);
-  const scopeItems = input.scopes
-    .map((scope) => `<li>${escapeHostedHtml(scope)}</li>`)
-    .join("");
+  const scopeItems = input.scopes.map((scope) => `<li>${escapeHostedHtml(scope)}</li>`).join("");
   const code = escapeHostedHtml(input.code);
   return buildHostedAuthHtml({
     title: `Authorize ${clientName}`,
