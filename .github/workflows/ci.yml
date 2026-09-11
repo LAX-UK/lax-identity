@@ -188,6 +188,9 @@ jobs:
           done
           docker logs identity-smoke
           exit 1
+      - name: Prove identity-db resolves drizzle-orm from the production image
+        run: |
+          docker run --rm "$IMAGE" node -e "import('/app/packages/identity-db/dist/client.js').then(() => console.log('identity-db-runtime-ok'))"
       - uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ${{ env.IMAGE }}
