@@ -70,6 +70,19 @@ const envSchema = z
         z.array(z.string().min(1)),
       )
       .default([]),
+    AUTH_TRUSTED_CLOUDFLARE_PROXY_CIDRS: z
+      .preprocess(
+        (val) => {
+          if (val === undefined || val === "" || val == null) return [];
+          if (typeof val !== "string") return val;
+          return val
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean);
+        },
+        z.array(z.string().min(1)),
+      )
+      .default([]),
     AUTH_CLIENT_IP_DIAGNOSTICS: z
       .preprocess((value) => value === "true" || value === true, z.boolean())
       .default(false),
