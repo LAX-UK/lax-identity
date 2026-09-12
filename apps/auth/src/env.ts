@@ -70,6 +70,9 @@ const envSchema = z
         z.array(z.string().min(1)),
       )
       .default([]),
+    AUTH_CLIENT_IP_DIAGNOSTICS: z
+      .preprocess((value) => value === "true" || value === true, z.boolean())
+      .default(false),
     JWT_AUDIENCE: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     AUTH_DEK_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     METRICS_TOKEN: z.preprocess(emptyToUndefined, z.string().min(16).optional()),

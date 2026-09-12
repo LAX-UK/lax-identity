@@ -42,7 +42,12 @@ export function createAuthApp(options: CreateAuthAppOptions): Hono {
     options.issuerHttpOutcomes.inc({ operation, status: String(c.res.status) });
   });
   const clientIp = createClientIpResolver(options.oidc.env.AUTH_TRUSTED_PROXY_CIDRS);
-  mountAuthOperationalRoutes(app, { ...options.operational, log: options.log, clientIp });
+  mountAuthOperationalRoutes(app, {
+    ...options.operational,
+    log: options.log,
+    clientIp,
+    clientIpDiagnostics: options.oidc.env.AUTH_CLIENT_IP_DIAGNOSTICS,
+  });
   mountOidcRoutes(app, { ...options.oidc, clientIp });
   return app;
 }
