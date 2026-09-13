@@ -53,7 +53,7 @@ const services = createOidcRouteServices({
   jwks: infra.jwks,
   authSecret: env.BETTER_AUTH_SECRET,
   recentStepUpMaxAgeSec: AUTH_TIMINGS.recentPasswordProofMaxAgeSec,
-  environment: env.NODE_ENV,
+  environment: env.APP_ENV,
   onBackchannelOutcome: (outcome) => {
     metrics.backchannelDeliveryOutcomes.inc({ outcome });
     if (outcome !== "delivered") log.warn({ outcome }, "backchannel_logout_delivery_outcome");
@@ -90,7 +90,7 @@ const authHandler = createAuthRequestHandler({
   oidcSessions: services.oidc.sessions,
   logout: services.oidc.logout,
 });
-const schedules = createAuthSchedules({
+const schedules = await createAuthSchedules({
   db,
   log,
   identityOperations,

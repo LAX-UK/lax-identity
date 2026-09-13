@@ -9,7 +9,7 @@ import { startBackchannelLogoutSchedule } from "../services/backchannel-logout.s
 import type { SsfDeliveryWorker } from "../services/ssf-delivery.worker.js";
 import type { SsfStreamService } from "../services/ssf-stream.service.js";
 
-export function createAuthSchedules(options: {
+export async function createAuthSchedules(options: {
   db: IdentityDatabase;
   log: pino.Logger;
   identityOperations: { purgeExpiredVerifications(): Promise<number> };
@@ -22,11 +22,15 @@ export function createAuthSchedules(options: {
   onSsfOutcome: (outcome: "delivered" | "retry_scheduled" | "failed", id: string) => void;
   reconcileAuthAtRest?: () => Promise<void>;
 }) {
-  const provisioning = options.ssfStreams.provisionRegisteredStreams(options.ssfEnabled);
-  void provisioning.catch((err) => {
+  let provisioning: Promise<void>;
+  try {
+    await options.ssfStreams.provisionRegisteredStreams(options.ssfEnabled);
+    provisioning = Promise.resolve();
+  } catch (err) {
     options.log.error({ err }, "ssf_stream_provisioning_failed");
     Sentry.captureException(err);
-  });
+    throw err;
+  }
   const verification = setInterval(
     () => {
       void options.identityOperations.purgeExpiredVerifications().catch((err) => {
