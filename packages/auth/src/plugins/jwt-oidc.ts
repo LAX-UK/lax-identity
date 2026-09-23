@@ -1,4 +1,8 @@
-import { ACCESS_TOKEN_TTL_SECONDS, allRegisteredOidcScopes } from "@auction/identity-contracts";
+import {
+  ACCESS_TOKEN_TTL_SECONDS,
+  allRegisteredOidcScopes,
+  oidcClientIdsWithImplicitConsent,
+} from "@auction/identity-contracts";
 import type { BetterAuthPlugin } from "better-auth";
 import { magicLink, twoFactor } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
@@ -82,6 +86,7 @@ export function buildJwtAndOidcPlugins(options: {
       useJWTPlugin: true,
       requirePKCE: true,
       scopes: [...allRegisteredOidcScopes()],
+      skipConsentClientIds: [...oidcClientIdsWithImplicitConsent()],
       getConsentHTML: ({ clientName, scopes, code }) =>
         buildOidcConsentHtml({ clientName, scopes, code }),
       metadata: {
