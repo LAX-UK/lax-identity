@@ -1,10 +1,10 @@
 packages:
   - "apps/auth"
   - "packages/auth"
-  - "packages/config-ts"
   - "packages/identity-contracts"
   - "packages/identity-db"
   - "packages/observability"
+  - "packages/config-ts"
 
 # Keep the closure lockfile valid for macOS development and the Linux
 # glibc/musl targets used by CI and the production Alpine image.

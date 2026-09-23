@@ -77,12 +77,14 @@ async function authenticateMachineClient(input: {
       input.onLimiterError?.(error);
     }
   }
+
   const valid = hasValidMachineCredentials(
     input.credentials,
     input.expectedClientId,
     input.expectedClientSecret,
   );
   if (!clientId) return { valid, limited: false };
+
   try {
     if (valid) {
       await input.limiter.reset(clientId);

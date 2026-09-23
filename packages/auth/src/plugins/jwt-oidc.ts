@@ -9,6 +9,7 @@ import { jwt } from "better-auth/plugins/jwt";
 import { oidcProvider } from "better-auth/plugins/oidc-provider";
 import { AUTH_TIMINGS } from "../auth-timings.js";
 import type { EnvelopeCrypto } from "../crypto/envelope.js";
+import { resolveMagicLinkUrl } from "../hosted-auth/magic-link-url.js";
 import { pickMagicLinkTemplate } from "../magic-link-email.js";
 import { buildMagicLinkVerifyPlugin } from "../magic-link-verify-hooks.js";
 import { buildOidcConsentHtml } from "../oidc-consent-html.js";
@@ -108,14 +109,19 @@ export function buildJwtAndOidcPlugins(options: {
       disableSignUp: true,
       storeToken: "hashed",
       expiresIn: AUTH_TIMINGS.magicLinkExpiresSec,
-      sendMagicLink: async ({ email: recipientEmail, token }, ctx) => {
+      sendMagicLink: async ({ email: recipientEmail, token, url }, ctx) => {
         if (!ctx) return;
         const found = await ctx.context.internalAdapter.findUserByEmail(recipientEmail);
         const authUser = found?.user;
         if (!authUser) return;
         const linkedCount = await options.accountLinkReader.countAccountsForUser(authUser.id);
         const template = pickMagicLinkTemplate(linkedCount > 0);
-        const linkUrl = `${webBase}/auth/activate?token=${encodeURIComponent(token)}`;
+        const linkUrl = resolveMagicLinkUrl({
+          pluginUrl: typeof url === "string" ? url : undefined,
+          issuerBase,
+          webBase,
+          token,
+        });
         const expirationMinutes = Math.round(AUTH_TIMINGS.magicLinkExpiresSec / 60);
         const baseEnqueue = {
           to: recipientEmail,

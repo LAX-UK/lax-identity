@@ -28,7 +28,10 @@ export class MachineCredentialRateLimiter {
     const count = Number((await this.redis.get(key)) ?? 0);
     if (count < FAILURE_MAX) return { limited: false };
     const ttl = await this.redis.ttl(key);
-    return { limited: true, retryAfterSec: ttl > 0 ? ttl : FAILURE_WINDOW_SEC };
+    return {
+      limited: true,
+      retryAfterSec: ttl > 0 ? ttl : FAILURE_WINDOW_SEC,
+    };
   }
 
   async recordFailure(clientId: string): Promise<MachineCredentialRateLimitDecision> {
@@ -44,7 +47,10 @@ export class MachineCredentialRateLimiter {
     }
     if (count <= FAILURE_MAX) return { limited: false };
     const ttl = await this.redis.ttl(key);
-    return { limited: true, retryAfterSec: ttl > 0 ? ttl : FAILURE_WINDOW_SEC };
+    return {
+      limited: true,
+      retryAfterSec: ttl > 0 ? ttl : FAILURE_WINDOW_SEC,
+    };
   }
 
   async reset(clientId: string): Promise<void> {

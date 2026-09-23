@@ -45,6 +45,49 @@ const rules = [
     forbiddenSpecifiers: [/^@auction\/persistence(\/|$)/, /^@auction\/db(\/|$)/],
   },
   {
+    dir: "packages/shop-domain",
+    label: "packages/shop-domain must not import from apps/**",
+    forbiddenSpecifiers: [/^@auction\/(api|web|worker|ws|auth-app|event)$/, /(^|\/)apps\//],
+  },
+  {
+    dir: "packages/shop-domain",
+    label: "packages/shop-domain must not import framework, db, or Bid packages",
+    forbiddenSpecifiers: [
+      /^@auction\/(db|persistence|domain|bidding-runtime)(\/|$)/,
+      /^drizzle-orm(\/|$)/,
+      /^fastify(\/|$)/,
+    ],
+  },
+  {
+    dir: "packages/shop-contracts",
+    label: "packages/shop-contracts must not import from apps/**",
+    forbiddenSpecifiers: [/^@auction\/(api|web|worker|ws|auth-app|event)$/, /(^|\/)apps\//],
+  },
+  {
+    dir: "packages/shop-contracts",
+    label: "packages/shop-contracts must not import db, domain runtime, or Fastify",
+    forbiddenSpecifiers: [
+      /^@auction\/(db|persistence|domain|shop-domain|bidding-runtime)(\/|$)/,
+      /^drizzle-orm(\/|$)/,
+      /^fastify(\/|$)/,
+    ],
+  },
+  {
+    dir: "packages/lax-ecosystem",
+    label: "packages/lax-ecosystem must not import from apps/**",
+    forbiddenSpecifiers: [/^@auction\/(api|web|worker|ws|auth-app|event)(\/|$)/, /(^|\/)apps\//],
+  },
+  {
+    dir: "packages/lax-ecosystem",
+    label: "packages/lax-ecosystem must stay framework-free",
+    forbiddenSpecifiers: [
+      /^@auction\/(db|persistence|domain|auth)(\/|$)/,
+      /^next(\/|$)/,
+      /^react(\/|$)/,
+      /^fastify(\/|$)/,
+    ],
+  },
+  {
     dir: "packages/bidding-runtime",
     label: "packages/bidding-runtime must not import from apps/**",
     forbiddenSpecifiers: [/^@auction\/(api|web|worker|ws|auth-app|event)$/, /(^|\/)apps\//],
@@ -508,6 +551,132 @@ for (const appDir of IDENTITY_CONSUMER_APPS) {
 if (identityConsumerViolations.length > 0) {
   console.error("Identity consumer boundary violations detected:\n");
   for (const v of identityConsumerViolations) {
+    console.error(`  ${v}`);
+  }
+  process.exit(1);
+}
+
+// ─── Shop product boundary ───────────────────────────────────────────────────
+
+const SHOP_FORBIDDEN_IMPORT_RE =
+  /^@auction\/(api|web|worker|ws|auth-app|event|db|persistence|domain|bidding-runtime)(\/|$)/;
+const SHOP_ALLOWED_AUCTION_IMPORTS = new Set([
+  "@auction/config-ts",
+  "@auction/identity-contracts",
+  "@auction/lax-ecosystem",
+  "@auction/observability",
+  "@auction/shop-contracts",
+  "@auction/ui",
+  "@auction/branding",
+  "@auction/marketing-ui",
+]);
+
+/** @type {string[]} */
+const shopBoundaryViolations = [];
+
+const shopSrc = join(root, "apps/shop/src");
+if (statSync(shopSrc, { throwIfNoEntry: false })?.isDirectory()) {
+  for (const file of listAllSources(shopSrc)) {
+    const rel = relative(root, file).replace(/\\/g, "/");
+    if (isTestSource(rel)) continue;
+    const text = readFileSync(file, "utf8");
+    for (const match of text.matchAll(SPECIFIER_RE)) {
+      const specifier = match[1] ?? match[2] ?? match[3];
+      if (!specifier) continue;
+      if (/(^|\/)apps\/web\//.test(specifier)) {
+        shopBoundaryViolations.push(
+          `${rel}: imports "${specifier}" — apps/shop must not import apps/web internals`,
+        );
+      }
+      if (specifier.startsWith("@auction/")) {
+        const packageName = specifier.split("/").slice(0, 2).join("/");
+        if (!SHOP_ALLOWED_AUCTION_IMPORTS.has(packageName)) {
+          shopBoundaryViolations.push(
+            `${rel}: imports "${specifier}" — apps/shop allowlist permits only ${[...SHOP_ALLOWED_AUCTION_IMPORTS].join(", ")}`,
+          );
+        } else if (SHOP_FORBIDDEN_IMPORT_RE.test(specifier)) {
+          shopBoundaryViolations.push(
+            `${rel}: imports "${specifier}" — apps/shop must stay on Shop-owned boundaries`,
+          );
+        }
+      }
+      if (IDENTITY_SERVER_IMPORT_RE.test(specifier)) {
+        shopBoundaryViolations.push(
+          `${rel}: imports "${specifier}" — apps/shop must use Shop Identity BFF, not @auction/auth/server`,
+        );
+      }
+    }
+  }
+}
+
+if (shopBoundaryViolations.length > 0) {
+  console.error("Shop product boundary violations detected:\n");
+  for (const v of shopBoundaryViolations) {
+    console.error(`  ${v}`);
+  }
+  process.exit(1);
+}
+
+// ─── Shop API Stripe adapter boundary ─────────────────────────────────────
+
+const STRIPE_IMPORT_RE = /^stripe(\/|$)/;
+/** @type {string[]} */
+const shopApiStripeViolations = [];
+const shopApiRoot = join(root, "apps/shop-api/src");
+if (statSync(shopApiRoot, { throwIfNoEntry: false })?.isDirectory()) {
+  for (const file of listAllSources(shopApiRoot)) {
+    const rel = relative(root, file).replace(/\\/g, "/");
+    if (isTestSource(rel)) continue;
+    if (rel.startsWith("apps/shop-api/src/infrastructure/")) continue;
+    const text = readFileSync(file, "utf8");
+    for (const match of text.matchAll(SPECIFIER_RE)) {
+      const specifier = match[1] ?? match[2] ?? match[3];
+      if (specifier && STRIPE_IMPORT_RE.test(specifier)) {
+        shopApiStripeViolations.push(
+          `${rel}: imports "${specifier}" — Stripe is only allowed under apps/shop-api/src/infrastructure`,
+        );
+      }
+    }
+  }
+}
+
+if (shopApiStripeViolations.length > 0) {
+  console.error("Shop API Stripe boundary violations detected:\n");
+  for (const v of shopApiStripeViolations) {
+    console.error(`  ${v}`);
+  }
+  process.exit(1);
+}
+
+// ─── Shop API application layer ───────────────────────────────────────────
+
+const SHOP_API_APPLICATION_FORBIDDEN_RE =
+  /^(@auction\/db|@auction\/persistence|drizzle-orm|fastify|@fastify\/)(\/|$)/;
+
+/** @type {string[]} */
+const shopApiApplicationViolations = [];
+
+const shopApiApplicationRoot = join(root, "apps/shop-api/src/application");
+if (statSync(shopApiApplicationRoot, { throwIfNoEntry: false })?.isDirectory()) {
+  for (const file of listAllSources(shopApiApplicationRoot)) {
+    const rel = relative(root, file).replace(/\\/g, "/");
+    if (isTestSource(rel)) continue;
+    const text = readFileSync(file, "utf8");
+    for (const match of text.matchAll(SPECIFIER_RE)) {
+      const specifier = match[1] ?? match[2] ?? match[3];
+      if (!specifier) continue;
+      if (SHOP_API_APPLICATION_FORBIDDEN_RE.test(specifier)) {
+        shopApiApplicationViolations.push(
+          `${rel}: imports "${specifier}" — shop-api application must not depend on infrastructure frameworks`,
+        );
+      }
+    }
+  }
+}
+
+if (shopApiApplicationViolations.length > 0) {
+  console.error("Shop API application layer violations detected:\n");
+  for (const v of shopApiApplicationViolations) {
     console.error(`  ${v}`);
   }
   process.exit(1);
