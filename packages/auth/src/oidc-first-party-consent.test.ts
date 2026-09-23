@@ -9,7 +9,7 @@ const ISSUER = "http://localhost:3003";
 const SHOP_CALLBACK = "http://localhost:3010/auth/callback";
 const BID_CALLBACK = "http://localhost:3000/api/auth/callback/lax-bid-web";
 const MOBILE_CALLBACK = "com.lax.bid:/oauth/callback";
-const PASSWORD = "correct-horse-battery-staple-32";
+const PASSWORD = "correct-horse-battery-staple-32"; // gitleaks:allow
 
 const FIRST_PARTY = [
   { clientId: "lax-shop-web", redirectUri: SHOP_CALLBACK, name: "LAX Shop Web" },
