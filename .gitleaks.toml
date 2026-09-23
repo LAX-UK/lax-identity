@@ -4,8 +4,9 @@ title = "LAX Identity"
 useDefault = true
 
 [allowlist]
-description = "Generated dependency stores are outside the Identity source boundary"
+description = "Generated dependency stores and Vitest-only OIDC fixtures"
 paths = [
+  '''packages/auth/src/oidc-first-party-consent\.test\.ts''',
   '''(^|/)\.pnpm-store/''',
   '''(^|/)node_modules/''',
 ]

@@ -35,6 +35,9 @@
       "sharp@<0.35.0": "0.35.0",
       "socket.io-parser@>=4.0.0 <4.2.7": "4.2.7",
       "ws@>=8.0.0 <8.21.0": "8.21.0"
+    },
+    "patchedDependencies": {
+      "better-auth@1.6.22": "patches/better-auth@1.6.22.patch"
     }
   },
   "devDependencies": {
