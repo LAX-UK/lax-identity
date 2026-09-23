@@ -95,7 +95,10 @@ export async function createAuthSchedules(options: {
       }, 1_000)
     : null;
   ssf?.unref();
-  const retirement = startJwksRetirementSchedule({ db: options.db, log: options.log });
+  const retirement = startJwksRetirementSchedule({
+    db: options.db,
+    log: options.log,
+  });
   const reconcileAuthAtRest = () => {
     void options.reconcileAuthAtRest?.().catch((err) => {
       options.log.error({ err }, "auth_at_rest_reconciliation_failed");

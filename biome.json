@@ -6,7 +6,12 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["**/node_modules/**", "**/dist/**", "**/coverage/**", "**/pnpm-lock.yaml"]
+    "ignore": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/coverage/**",
+      "**/pnpm-lock.yaml"
+    ]
   },
   "formatter": {
     "indentStyle": "space",
