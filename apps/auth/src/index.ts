@@ -44,7 +44,9 @@ try {
   throw error;
 }
 const repositories = createAuthRepositories(db);
-const identityPorts = createIdentityAuthPorts(db, { envelope: envelope ?? undefined });
+const identityPorts = createIdentityAuthPorts(db, {
+  envelope: envelope ?? undefined,
+});
 const metrics = createAuthMetrics();
 const services = createOidcRouteServices({
   db,

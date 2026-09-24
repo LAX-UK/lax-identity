@@ -165,7 +165,7 @@ jobs:
         run: |
           auth_dek_key="$(openssl rand -hex 32)"
           docker run --rm -d --name identity-smoke --network host \
-            -e NODE_ENV=production \
+            -e NODE_ENV=test \
             -e APP_ENV=test \
             -e DATABASE_URL="$DATABASE_URL" \
             -e DATABASE_URL_AUTH="$DATABASE_URL" \
@@ -181,9 +181,15 @@ jobs:
             -e EMAIL_PROVIDER=console \
             "$IMAGE"
           trap 'docker rm -f identity-smoke >/dev/null 2>&1 || true' EXIT
-          for _ in $(seq 1 30); do
-            curl --fail --silent http://127.0.0.1:3003/health/ready &&
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:3003/health/ready; then
               exit 0
+            fi
+            if ! docker inspect -f '{{.State.Running}}' identity-smoke 2>/dev/null | grep -q true; then
+              echo "identity-smoke container exited before readiness (attempt ${attempt})"
+              docker logs identity-smoke 2>&1 || true
+              exit 1
+            fi
             sleep 2
           done
           docker logs identity-smoke
