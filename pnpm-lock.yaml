@@ -48,7 +48,7 @@ importers:
         version: 0.4.2
       '@hono/node-server':
         specifier: ^1.13.7
-        version: 1.19.13(hono@4.12.25)
+        version: 1.19.13(hono@4.13.5)
       '@sentry/node':
         specifier: 10.51.0
         version: 10.51.0
@@ -59,8 +59,8 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
       hono:
-        specifier: ^4.12.25
-        version: 4.12.25
+        specifier: ^4.13.5
+        version: 4.13.5
       ioredis:
         specifier: ^5.4.2
         version: 5.10.1
@@ -1514,8 +1514,8 @@ packages:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
-  hono@4.12.25:
-    resolution: {integrity: sha512-2NFaIyNVgJmBs/ecmtGzlmluTFs5cHEWGTdu0t1HBwYzoGXOL5nUQBRMXsXWla5i4KkG//QMzVP88m1+I3fdAQ==}
+  hono@4.13.5:
+    resolution: {integrity: sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw==}
     engines: {node: '>=16.9.0'}
 
   https-proxy-agent@5.0.1:
@@ -2210,9 +2210,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@hono/node-server@1.19.13(hono@4.12.25)':
+  '@hono/node-server@1.19.13(hono@4.13.5)':
     dependencies:
-      hono: 4.12.25
+      hono: 4.13.5
 
   '@ioredis/commands@1.5.1': {}
 
@@ -3055,7 +3055,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.12.25: {}
+  hono@4.13.5: {}
 
   https-proxy-agent@5.0.1:
     dependencies:
