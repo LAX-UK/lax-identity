@@ -2930,7 +2930,7 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.4
+      hasown: 2.0.3
 
   esbuild@0.25.12:
     optionalDependencies:
