@@ -1,7 +1,7 @@
 import { APIError } from "better-auth/api";
 import {
-  type OidcAuthorizationCodeCorrelationReason,
   OidcAuthorizationCodeCorrelationError,
+  type OidcAuthorizationCodeCorrelationReason,
 } from "../services/oidc-session-coordinator.js";
 
 export type OidcClaims = {
