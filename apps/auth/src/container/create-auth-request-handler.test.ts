@@ -54,8 +54,7 @@ describe("auth request lifecycle ordering", () => {
             status: 302,
             headers: {
               Location: "https://shop.test/callback?code=issued-code&state=s",
-              "set-cookie":
-                "better-auth.session_token=fresh-token; Path=/; HttpOnly; SameSite=Lax",
+              "set-cookie": "better-auth.session_token=fresh-token; Path=/; HttpOnly; SameSite=Lax",
             },
           }),
       ),

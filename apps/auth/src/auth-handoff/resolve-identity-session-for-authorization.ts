@@ -2,7 +2,8 @@ const SESSION_TOKEN_RE = /(?:__Secure-)?better-auth\.session_token=/;
 const SESSION_DATA_RE = /(?:__Secure-)?better-auth\.session_data=/;
 const DONT_REMEMBER_RE = /(?:__Secure-)?better-auth\.dont_remember=/;
 
-const STRIP_COOKIE_NAME_RES = /^(?:__Secure-)?better-auth\.(session_token|session_data|dont_remember)$/;
+const STRIP_COOKIE_NAME_RES =
+  /^(?:__Secure-)?better-auth\.(session_token|session_data|dont_remember)$/;
 
 export function hasBetterAuthSessionCookie(cookieHeader: string | null | undefined): boolean {
   if (!cookieHeader) return false;
